@@ -1,10 +1,12 @@
 <?php
 namespace Mazed\PHPValidator\Rules;
 
+use Mazed\PHPValidator\Helpers;
 use Mazed\PHPValidator\Rule;
 
 class BetweenRule extends Rule
 {
+    use Helpers;
 
     protected $message = "The :attribute must be between :min and :max";
 
@@ -14,10 +16,17 @@ class BetweenRule extends Rule
     {
         $this->checkRequiredParameter($this->requireParameters);
 
-        $min = $this->getParameter('min');
-        $max = $this->getParameter('max');
+        $min = (int) $this->getParameter('min');
+        $max = (int) $this->getParameter('max');
 
-        return $value >= $min && $value <= $max;
+        $length = $this->getValueLength($value);
+
+        if ($length) {
+            return $length >= $min && $length <= $max;
+        }
+        
+        return false;
+
     }
 
     public function getParamKeys()

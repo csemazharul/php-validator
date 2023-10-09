@@ -3,7 +3,7 @@ namespace Mazed\PHPValidator;
 
 class InputDataContainer
 {
-    private $data = []; 
+    private $data = [];
     private $attributeKey;
     private $attributeLabel;
 
@@ -22,13 +22,13 @@ class InputDataContainer
         return $this->attributeKey;
     }
 
-    public function getAttributeValue($key=null)
+    public function getAttributeValue($key = null)
     {
-        if(isset($this->data[$key])){
+        if (isset($this->data[$key])) {
             return $this->data[$key];
         }
 
-        if(isset($this->data[$this->attributeKey])){
+        if (isset($this->data[$this->attributeKey])) {
             return $this->data[$this->attributeKey];
         }
         return null;
@@ -48,5 +48,9 @@ class InputDataContainer
     {
         return $this->data;
     }
+
+    // public function getAttributePath(){{
+
+    // }
 
 }

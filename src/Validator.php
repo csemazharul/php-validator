@@ -6,24 +6,15 @@ use Mazed\PHPValidator\Exception\RuleErrorException;
 
 class Validator
 {
-    protected $errorBag;
-    protected $inputContainer;
+    use Helpers, SanitizationMethods;
 
-    public function parseRule($rule)
-    {
-        $exp = explode(':', $rule, 2);
-        $ruleName = $exp[0];
-        $params = [];
+    private $errorBag;
 
-        if (isset($exp[1])) {
-            $params = explode(',', $exp[1]);
-        }
+    private $inputContainer;
 
-        return [$ruleName, $params];
+    private $validated = [];
 
-    }
-
-    public function validate($data, $ruleFields, $customMessages = null, $attributeLabels = null)
+    public function make($data, $ruleFields, $customMessages = null, $attributeLabels = null)
     {
         $this->inputContainer = new InputDataContainer($data);
 
@@ -41,10 +32,29 @@ class Validator
 
             $this->inputContainer->setAttributeLabel($attributeLabel);
 
+            $value = $this->inputContainer->getAttributeValue();
+
+            $this->validated[$field] = $value;
+
+            if (in_array('nullable', $rules) && $this->isEmpty($value)) {
+                continue;
+            }
+
             foreach ($rules as $ruleName) {
 
-                list($ruleName, $paramValues) = $this->parseRule($ruleName);
-                $ruleClass = $this->resolveRule($ruleName);
+                if (is_string($ruleName) && strpos($ruleName, 'sanitize') !== false) {
+                    $this->applyFilter($ruleName, $field, $value);
+
+                    continue;
+                }
+
+                if (is_subclass_of($ruleName, Rule::class)) {
+                    $ruleClass = \is_object($ruleName) ? $ruleName : new $ruleName();
+                } else {
+                    list($ruleName, $paramValues) = $this->parseRule($ruleName);
+                    $ruleClass = $this->resolveRule($ruleName);
+                }
+
                 $ruleClass->setInputDataContainer($this->inputContainer);
                 $ruleClass->setRuleName($ruleName);
 
@@ -54,7 +64,7 @@ class Validator
 
                 $isValidated = $ruleClass->validate($this->inputContainer->getAttributeValue());
 
-                if (!$isValidated && $ruleClass->skipRule()) {
+                if (!$isValidated) {
                     $this->errorBag->addError($ruleClass, $customMessages);
                     break;
                 }
@@ -63,7 +73,6 @@ class Validator
         }
 
         return $this;
-
     }
 
     public function fails()
@@ -76,7 +85,7 @@ class Validator
         return $this->errorBag->getErrors();
     }
 
-    protected function resolveRule($ruleName)
+    private function resolveRule($ruleName)
     {
         if (is_string($ruleName)) {
             $ruleClass = "Mazed\PHPValidator\\Rules\\" . str_replace(' ', '', ucwords(str_replace('_', ' ', $ruleName))) . 'Rule';
@@ -87,13 +96,44 @@ class Validator
 
             return new $ruleClass;
 
-        } else if (is_subclass_of($ruleName, Rule::class)) {
+        }
+    }
 
-            $customRuleClass = \is_object($ruleName) ? $ruleName : new $ruleName();
-            return $customRuleClass;
+    private function parseRule($rule)
+    {
+        $exp = explode(':', $rule, 2);
+        $ruleName = $exp[0];
+        $params = [];
 
+        if (isset($exp[1])) {
+            $params = explode(',', $exp[1]);
         }
 
+        return [$ruleName, $params];
+
+    }
+
+    public function validated()
+    {
+        return empty($this->errors()) ? $this->validated : $this->errors();
+    }
+
+    private function applyFilter($sanitize, $fieldName, $value)
+    {
+        $data = explode('|', $sanitize);
+
+        $sanitizeName = isset($data[0]) ? explode(':', $data[0]) : [];
+        $params = isset($data[1]) ? explode(',', $data[1]) : [];
+
+        if (\count($sanitizeName) === 2) {
+
+            list($prefix, $suffix) = $sanitizeName;
+            $sanitizationMethod = $prefix . str_replace('_', '', ucwords($suffix, '_'));
+
+            if (method_exists($this, $sanitizationMethod)) {
+                $this->validated[$fieldName] = $this->{$sanitizationMethod}($value, $params);
+            }
+        }
     }
 
 }
