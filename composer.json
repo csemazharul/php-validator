@@ -21,7 +21,7 @@
         }
     },
     "scripts":{
-        "test:unit":"./vendor/bin/pest",
+        "validator:test":"./vendor/bin/pest",
         "compact": "./vendor/bin/phpcs  -p ./src --standard=PHPCompatibility --runtime-set testVersion 5.6",
         "post-install-cmd": "\"vendor/bin/phpcs\" --config-set installed_paths vendor/phpcompatibility/php-compatibility",
         "post-update-cmd" : "\"vendor/bin/phpcs\" --config-set installed_paths vendor/phpcompatibility/php-compatibility"
