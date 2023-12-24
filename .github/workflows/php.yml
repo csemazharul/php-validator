@@ -11,6 +11,8 @@ permissions:
 
 jobs:
   build:
+    # Name of the job as it will be displayed in GitHub
+    name: Php Tests
 
     runs-on: ubuntu-latest
 
